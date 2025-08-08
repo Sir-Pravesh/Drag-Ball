@@ -1,0 +1,132 @@
+<style>
+       #ball {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            cursor: grab;
+            z-index: 9999px;
+            -webkit-user-drag: none;
+            -moz-user-drag: none;
+            -ms-user-drag: none;
+            user-drag: none;
+        }
+</style>
+<img id="ball" src="{{ asset('images/chart_figure.png')}}" alt="Ball">
+
+<script>
+  const ball = document.getElementById("ball");
+
+  let isDragging = false;
+  let lastX = 0, lastY = 0;
+  let velocityX = 0, velocityY = 0;
+  let lastTime = 0;
+  let ballX = 200, ballY = 200;
+  let dragThreshold = 5;
+
+  let holdTimer;
+  let holdThreshold = 50; // milliseconds
+  let holdActive = false; // only true if hold triggered
+
+  // Initial ball position
+  ball.style.left = ballX + "px";
+  ball.style.top = ballY + "px";
+
+  // Mouse down
+  ball.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return; // left click only
+      isDragging = false;
+
+      lastX = e.clientX;
+      lastY = e.clientY;
+      startX = e.clientX;
+      startY = e.clientY;
+      lastTime = Date.now();
+      velocityX = 0;
+      velocityY = 0;
+
+      holdTimer = setTimeout(() => {
+          holdActive = true;
+      }, holdThreshold);
+  });
+
+  document.addEventListener("mousemove", (e) => {
+      if (!holdActive) return;
+
+      const moveDist = Math.sqrt(
+          Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2)
+      );
+
+      if (!isDragging && moveDist > dragThreshold) {
+          isDragging = true;
+          ball.style.cursor = "grabbing";
+      }
+
+      if (isDragging) {
+          const currentTime = Date.now();
+          let deltaTime = (currentTime - lastTime) / 1000;
+
+          if (deltaTime < 0.001) deltaTime = 0.001;
+
+          velocityX = (e.clientX - lastX) / deltaTime;
+          velocityY = (e.clientY - lastY) / deltaTime;
+
+          ballX = e.clientX - ball.offsetWidth / 2;
+          ballY = e.clientY - ball.offsetHeight / 2;
+          ball.style.left = ballX + "px";
+          ball.style.top = ballY + "px";
+
+          lastX = e.clientX;
+          lastY = e.clientY;
+          lastTime = currentTime;
+      }
+  });
+
+
+  // Mouse up
+  document.addEventListener("mouseup", () => {
+      clearTimeout(holdTimer);
+
+      if (isDragging && holdActive) {
+          requestAnimationFrame(updateBall);
+      }
+      holdActive = false;
+      isDragging = false;
+      ball.style.cursor = "grab";
+  });
+
+
+  // Physics loop
+  function updateBall() {
+      ballX += velocityX * 0.016;
+      ballY += velocityY * 0.016;
+
+      velocityX *= 0.9;
+      velocityY *= 0.9;
+
+      if (ballX <= 0 || ballX + ball.offsetWidth >= window.innerWidth) {
+          velocityX *= -0.8;
+      }
+      if (ballY <= 0 || ballY + ball.offsetHeight >= window.innerHeight) {
+          velocityY *= -0.8;
+      }
+
+      ballX = Math.max(0, Math.min(window.innerWidth - ball.offsetWidth, ballX));
+      ballY = Math.max(0, Math.min(window.innerHeight - ball.offsetHeight, ballY));
+
+      ball.style.left = ballX + "px";
+      ball.style.top = ballY + "px";
+
+      if (Math.abs(velocityX) > 0.1 || Math.abs(velocityY) > 0.1) {
+          requestAnimationFrame(updateBall);
+      }
+  }
+
+  // ball.addEventListener("mouseleave", () => {
+  //     clearTimeout(holdTimer);
+  //     holdActive = false;s
+  //     isDragging = false;
+  //     ball.style.cursor = "grab";
+  //     ball.style.backgroundColor = "";
+  // });
+</script>
